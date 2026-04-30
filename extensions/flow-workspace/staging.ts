@@ -9,8 +9,12 @@
 // - Flows:  .staging/flows/*.yaml → .pi/flows/flows/custom/<flowName>.yaml
 // ---------------------------------------------------------------------------
 
-import { existsSync, mkdirSync, rmSync, readdirSync, copyFileSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, readdirSync, copyFileSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
+import { homedir } from "node:os";
+
+const LOG = join(homedir(), ".pi", "pi-flows-debug.log");
+function log(msg: string) { try { appendFileSync(LOG, `${new Date().toISOString()} ${msg}\n`); } catch {} }
 
 export const STAGING_DIR = ".pi/flows/.staging";
 export const STAGING_AGENTS = ".pi/flows/.staging/agents";
@@ -54,11 +58,11 @@ export function promoteStagingToFinal(
   const stagingFlows = join(projectRoot, STAGING_FLOWS);
   const finalAgents = join(projectRoot, ".pi", "flows", "agents");
   const finalFlows = join(projectRoot, ".pi", "flows", "flows", "custom");
-  console.error(`[pi-flows] promoteStagingToFinal: projectRoot=${projectRoot}`);
-  console.error(`[pi-flows]   stagingAgents=${stagingAgents} exists=${existsSync(stagingAgents)}`);
-  console.error(`[pi-flows]   stagingFlows=${stagingFlows} exists=${existsSync(stagingFlows)}`);
-  console.error(`[pi-flows]   finalAgents=${finalAgents}`);
-  console.error(`[pi-flows]   finalFlows=${finalFlows}`);
+  log(`[staging] promoteStagingToFinal projectRoot=${projectRoot}`);
+  log(`[staging]   stagingAgents=${stagingAgents} exists=${existsSync(stagingAgents)}`);
+  log(`[staging]   stagingFlows=${stagingFlows} exists=${existsSync(stagingFlows)}`);
+  log(`[staging]   finalAgents=${finalAgents}`);
+  log(`[staging]   finalFlows=${finalFlows}`);
 
   // Ensure final directories exist
   mkdirSync(finalAgents, { recursive: true });

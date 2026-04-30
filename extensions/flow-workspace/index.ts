@@ -17,10 +17,14 @@ import {
   getLatestCompactionEntry,
   type SessionEntry,
 } from "@mariozechner/pi-coding-agent";
-import { existsSync, readFileSync, copyFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, copyFileSync, mkdirSync, appendFileSync } from "node:fs";
 import { createStagingDir, wipeStagingDir, promoteStagingToFinal, STAGING_AGENTS, STAGING_FLOWS } from "./staging.js";
 import { join } from "node:path";
+import { homedir } from "node:os";
 import { resolveProjectRoot } from "../project-root.js";
+
+const LOG = join(homedir(), ".pi", "pi-flows-debug.log");
+function log(msg: string) { try { appendFileSync(LOG, `${new Date().toISOString()} ${msg}\n`); } catch {} }
 import { getModelRole } from "../role-manager.js";
 import { emitPromptAndAwait } from "../flow-engine/flow-prompt.js";
 import { parseFlowYamlString } from "../flow-engine/flow-parser-yaml.js";
@@ -901,9 +905,9 @@ async function handleNewFlow(
 
     if (nameResult.answer) {
       safeName = slugify(nameResult.answer);
-      console.error(`[pi-flows] saving flow: projectRoot=${projectRoot} safeName=${safeName} stagingFlowPath=${flowPath}`);
+      log(`[workspace] saving flow: projectRoot=${projectRoot} safeName=${safeName} stagingFlowPath=${flowPath}`);
       const finalFlowPath = promoteStagingToFinal(projectRoot, safeName);
-      console.error(`[pi-flows] promoteStagingToFinal returned: ${finalFlowPath}`);
+      log(`[workspace] promoteStagingToFinal returned: ${finalFlowPath}`);
       flowPath = finalFlowPath || flowPath;
 
       // Re-discover so the saved flow registers as a command immediately

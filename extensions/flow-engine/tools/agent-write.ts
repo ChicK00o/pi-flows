@@ -8,8 +8,12 @@
 import { Type } from "@sinclair/typebox";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { validateAgentContent } from "./agent-validate.js";
-import { writeFileSync, mkdirSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { writeFileSync, mkdirSync, appendFileSync } from "node:fs";
+import { dirname, resolve, join } from "node:path";
+import { homedir } from "node:os";
+
+const LOG = join(homedir(), ".pi", "pi-flows-debug.log");
+function log(msg: string) { try { appendFileSync(LOG, `${new Date().toISOString()} ${msg}\n`); } catch {} }
 
 export function registerAgentWriteTool(pi: ExtensionAPI, projectRoot?: string): void {
   pi.registerTool({
@@ -44,7 +48,7 @@ export function registerAgentWriteTool(pi: ExtensionAPI, projectRoot?: string): 
       // Ensure directory exists and write the file
       // Resolve relative paths against projectRoot to avoid resolving against pi's process cwd
       const absPath = projectRoot ? resolve(projectRoot, params.path) : params.path;
-      console.error(`[pi-flows] agent_write: params.path=${params.path} absPath=${absPath} projectRoot=${projectRoot}`);
+      log(`[agent_write] params.path=${params.path} absPath=${absPath} projectRoot=${projectRoot}`);
       try {
         mkdirSync(dirname(absPath), { recursive: true });
         writeFileSync(absPath, params.content, "utf-8");

@@ -6,9 +6,12 @@
 // so flows/agents are stored globally when pi is used outside a project.
 // ---------------------------------------------------------------------------
 
-import { existsSync } from "node:fs";
+import { existsSync, appendFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { homedir } from "node:os";
+
+const LOG = join(homedir(), ".pi", "pi-flows-debug.log");
+function log(msg: string) { try { appendFileSync(LOG, `${new Date().toISOString()} ${msg}\n`); } catch {} }
 
 /**
  * Resolve the project root for storing flows and agents.
@@ -23,7 +26,7 @@ export function resolveProjectRoot(): string {
 
   while (true) {
     if (existsSync(join(dir, ".git"))) {
-      console.error(`[pi-flows] projectRoot: ${dir} (git root, cwd was ${start})`);
+      log(`[projectRoot] ${dir} (git root, cwd was ${start})`);
       return dir;
     }
     const parent = dirname(dir);
@@ -36,6 +39,6 @@ export function resolveProjectRoot(): string {
 
   // No git repo found: store flows in ~/.pi
   const fallback = join(homedir(), ".pi");
-  console.error(`[pi-flows] projectRoot: ${fallback} (no git root found, cwd was ${start})`);
+  log(`[projectRoot] ${fallback} (no git root found, cwd was ${start})`);
   return fallback;
 }
