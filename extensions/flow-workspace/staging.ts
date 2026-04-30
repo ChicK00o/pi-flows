@@ -54,6 +54,11 @@ export function promoteStagingToFinal(
   const stagingFlows = join(projectRoot, STAGING_FLOWS);
   const finalAgents = join(projectRoot, ".pi", "flows", "agents");
   const finalFlows = join(projectRoot, ".pi", "flows", "flows", "custom");
+  console.error(`[pi-flows] promoteStagingToFinal: projectRoot=${projectRoot}`);
+  console.error(`[pi-flows]   stagingAgents=${stagingAgents} exists=${existsSync(stagingAgents)}`);
+  console.error(`[pi-flows]   stagingFlows=${stagingFlows} exists=${existsSync(stagingFlows)}`);
+  console.error(`[pi-flows]   finalAgents=${finalAgents}`);
+  console.error(`[pi-flows]   finalFlows=${finalFlows}`);
 
   // Ensure final directories exist
   mkdirSync(finalAgents, { recursive: true });

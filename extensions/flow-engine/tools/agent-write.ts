@@ -44,6 +44,7 @@ export function registerAgentWriteTool(pi: ExtensionAPI, projectRoot?: string): 
       // Ensure directory exists and write the file
       // Resolve relative paths against projectRoot to avoid resolving against pi's process cwd
       const absPath = projectRoot ? resolve(projectRoot, params.path) : params.path;
+      console.error(`[pi-flows] agent_write: params.path=${params.path} absPath=${absPath} projectRoot=${projectRoot}`);
       try {
         mkdirSync(dirname(absPath), { recursive: true });
         writeFileSync(absPath, params.content, "utf-8");

@@ -901,7 +901,9 @@ async function handleNewFlow(
 
     if (nameResult.answer) {
       safeName = slugify(nameResult.answer);
+      console.error(`[pi-flows] saving flow: projectRoot=${projectRoot} safeName=${safeName} stagingFlowPath=${flowPath}`);
       const finalFlowPath = promoteStagingToFinal(projectRoot, safeName);
+      console.error(`[pi-flows] promoteStagingToFinal returned: ${finalFlowPath}`);
       flowPath = finalFlowPath || flowPath;
 
       // Re-discover so the saved flow registers as a command immediately

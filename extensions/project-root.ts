@@ -19,9 +19,11 @@ import { homedir } from "node:os";
  */
 export function resolveProjectRoot(): string {
   let dir = process.cwd();
+  const start = dir;
 
   while (true) {
     if (existsSync(join(dir, ".git"))) {
+      console.error(`[pi-flows] projectRoot: ${dir} (git root, cwd was ${start})`);
       return dir;
     }
     const parent = dirname(dir);
@@ -33,5 +35,7 @@ export function resolveProjectRoot(): string {
   }
 
   // No git repo found: store flows in ~/.pi
-  return join(homedir(), ".pi");
+  const fallback = join(homedir(), ".pi");
+  console.error(`[pi-flows] projectRoot: ${fallback} (no git root found, cwd was ${start})`);
+  return fallback;
 }
