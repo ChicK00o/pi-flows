@@ -382,6 +382,7 @@ async function handleEditFlow(
     });
 
     const spawnCtx = getSpawnContext(pi);
+    log(`[workspace] spawnCtx tools: ${spawnCtx.tools.map((t: any) => t.name).join(', ')}`);
     const result = await spawnAgent({
       agent: architectConfig,
       task: currentTask,
@@ -773,6 +774,8 @@ async function handleNewFlow(
     // Extract flow path and created files from tool calls
     flowPath = "";
     createdFiles.length = 0;
+    log(`[workspace] result.toolCalls: ${result.toolCalls.map((tc: any) => tc.toolName).join(', ')}`);
+    log(`[workspace] result.finishParams: ${JSON.stringify(result.finishParams ?? null)}`);
 
     for (const tc of result.toolCalls) {
       const baseName = tc.toolName.replace(/^mcp__[^_]+__/, "");
@@ -906,6 +909,7 @@ async function handleNewFlow(
     if (nameResult.answer) {
       safeName = slugify(nameResult.answer);
       log(`[workspace] saving flow: projectRoot=${projectRoot} safeName=${safeName} stagingFlowPath=${flowPath}`);
+      log(`[workspace] allCreatedFiles: ${[...allCreatedFiles].join(', ')}`);
       const finalFlowPath = promoteStagingToFinal(projectRoot, safeName);
       log(`[workspace] promoteStagingToFinal returned: ${finalFlowPath}`);
       flowPath = finalFlowPath || flowPath;
