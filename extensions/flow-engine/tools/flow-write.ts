@@ -34,7 +34,9 @@ export function registerFlowWriteTool(
       // Run validation first
       const validation = validateFlowContent(params.content, getDiscoveredAgents);
 
+      log(`[flow_write] called: path=${params.path} projectRoot=${projectRoot} valid=${validation.valid}`);
       if (!validation.valid) {
+        log(`[flow_write] VALIDATION FAILED: ${JSON.stringify(validation.diagnostics)}`);
         return {
           content: [
             {
@@ -53,11 +55,13 @@ export function registerFlowWriteTool(
       // Ensure directory exists and write the file
       // Resolve relative paths against projectRoot to avoid resolving against pi's process cwd
       const absPath = projectRoot ? resolve(projectRoot, params.path) : params.path;
-      log(`[flow_write] params.path=${params.path} absPath=${absPath} projectRoot=${projectRoot}`);
+      log(`[flow_write] writing to absPath=${absPath}`);
       try {
         mkdirSync(dirname(absPath), { recursive: true });
         writeFileSync(absPath, params.content, "utf-8");
+        log(`[flow_write] SUCCESS: ${absPath}`);
       } catch (err) {
+        log(`[flow_write] WRITE ERROR: ${err}`);
         return {
           content: [
             {

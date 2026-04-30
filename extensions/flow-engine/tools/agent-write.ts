@@ -29,7 +29,9 @@ export function registerAgentWriteTool(pi: ExtensionAPI, projectRoot?: string): 
       const dynamicTools = new Set(pi.getAllTools().map(t => t.name));
       const validation = validateAgentContent(params.content, dynamicTools);
 
+      log(`[agent_write] called: path=${params.path} projectRoot=${projectRoot} valid=${validation.valid}`);
       if (!validation.valid) {
+        log(`[agent_write] VALIDATION FAILED: ${JSON.stringify(validation.diagnostics)}`);
         return {
           content: [
             {
@@ -48,11 +50,13 @@ export function registerAgentWriteTool(pi: ExtensionAPI, projectRoot?: string): 
       // Ensure directory exists and write the file
       // Resolve relative paths against projectRoot to avoid resolving against pi's process cwd
       const absPath = projectRoot ? resolve(projectRoot, params.path) : params.path;
-      log(`[agent_write] params.path=${params.path} absPath=${absPath} projectRoot=${projectRoot}`);
+      log(`[agent_write] writing to absPath=${absPath}`);
       try {
         mkdirSync(dirname(absPath), { recursive: true });
         writeFileSync(absPath, params.content, "utf-8");
+        log(`[agent_write] SUCCESS: ${absPath}`);
       } catch (err) {
+        log(`[agent_write] WRITE ERROR: ${err}`);
         return {
           content: [
             {

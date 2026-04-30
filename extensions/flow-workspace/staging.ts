@@ -26,6 +26,7 @@ export const STAGING_FLOWS = ".pi/flows/.staging/flows";
 export function createStagingDir(projectRoot: string): void {
   mkdirSync(join(projectRoot, STAGING_AGENTS), { recursive: true });
   mkdirSync(join(projectRoot, STAGING_FLOWS), { recursive: true });
+  log(`[staging] createStagingDir: ${join(projectRoot, STAGING_DIR)}`);
 }
 
 /**
@@ -70,23 +71,29 @@ export function promoteStagingToFinal(
 
   // Copy agents
   if (existsSync(stagingAgents)) {
-    for (const file of readdirSync(stagingAgents)) {
-      if (file.endsWith(".md")) {
-        copyFileSync(join(stagingAgents, file), join(finalAgents, file));
-      }
+    const agentFiles = readdirSync(stagingAgents).filter(f => f.endsWith(".md"));
+    log(`[staging] agent files to copy: ${agentFiles.join(', ') || '(none)'}`);
+    for (const file of agentFiles) {
+      copyFileSync(join(stagingAgents, file), join(finalAgents, file));
+      log(`[staging] copied agent: ${file}`);
     }
+  } else {
+    log(`[staging] stagingAgents dir missing!`);
   }
 
   // Copy flow file — use the provided flowName for the final filename
   let finalFlowPath: string | null = null;
   if (existsSync(stagingFlows)) {
     const flowFiles = readdirSync(stagingFlows).filter(f => f.endsWith(".yaml"));
+    log(`[staging] flow files to copy: ${flowFiles.join(', ') || '(none)'}`);
     if (flowFiles.length > 0) {
-      // Take the first (should only be one)
       const srcFlow = join(stagingFlows, flowFiles[0]);
       finalFlowPath = join(finalFlows, `${flowName}.yaml`);
       copyFileSync(srcFlow, finalFlowPath);
+      log(`[staging] copied flow: ${srcFlow} -> ${finalFlowPath}`);
     }
+  } else {
+    log(`[staging] stagingFlows dir missing!`);
   }
 
   // Wipe staging
