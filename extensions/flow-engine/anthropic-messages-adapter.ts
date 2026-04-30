@@ -27,15 +27,47 @@
 // ---------------------------------------------------------------------------
 
 import type { ExtensionFactory } from "@mariozechner/pi-coding-agent";
+import { join } from "node:path";
+import { homedir } from "node:os";
+import { appendFileSync } from "node:fs";
+
+const LOG = join(homedir(), ".pi", "pi-flows-debug.log");
+function log(msg: string) { try { appendFileSync(LOG, `${new Date().toISOString()} ${msg}\n`); } catch {} }
+
+// Known install paths for pi-anthropic-messages, in priority order.
+// The package may be installed as a git package under ~/.pi/agent/git/
+// or as an npm package. We try each location and use the first that resolves.
+const CANDIDATE_PATHS = [
+  join(homedir(), ".pi", "agent", "git", "github.com", "BlackBeltTechnology", "pi-anthropic-messages", "extensions", "index.ts"),
+  join(homedir(), ".pi", "agent", "git", "github.com", "BlackBeltTechnology", "pi-anthropic-messages", "extensions", "index.js"),
+];
 
 export const anthropicMessagesAgentFactory: ExtensionFactory = async (pi) => {
+  // First try the package name (works when installed as npm dep or via node_modules alias)
   try {
     const mod = await import("@pi/anthropic-messages");
     if (typeof mod.default === "function") {
+      log("[adapter] loaded @pi/anthropic-messages via package name");
       await mod.default(pi);
+      return;
     }
   } catch {
-    // Package not installed — subagents run without the anthropic-messages
-    // transform, same as the main session when the package is absent.
+    // Not available as a package — fall through to path-based resolution
   }
+
+  // Fall back to known install paths
+  for (const candidate of CANDIDATE_PATHS) {
+    try {
+      const mod = await import(candidate);
+      if (typeof mod.default === "function") {
+        log(`[adapter] loaded pi-anthropic-messages from ${candidate}`);
+        await mod.default(pi);
+        return;
+      }
+    } catch {
+      // Try next candidate
+    }
+  }
+
+  log("[adapter] WARNING: pi-anthropic-messages not found — subagent runs without anthropic-messages transform");
 };
