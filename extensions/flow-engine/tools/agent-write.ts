@@ -19,12 +19,24 @@ export function registerAgentWriteTool(pi: ExtensionAPI, projectRoot?: string): 
   pi.registerTool({
     name: "agent_write",
     description:
-      "Validate and write an agent .md file. Validates internally first. If validation passes, writes the file and triggers agent re-discovery. Returns errors if invalid.",
+      "Validate and write an agent .md file. Use the 'path' parameter for the full file path (e.g. '.pi/flows/.staging/agents/my-agent.md') or 'name' for a bare agent name (e.g. 'my-agent'). Validates content first; if valid, writes the file and triggers re-discovery.",
     parameters: Type.Object({
-      path: Type.String({ description: "Absolute or relative path to write the agent .md file" }),
+      path: Type.Optional(Type.String({ description: "Absolute or relative path to write the agent .md file" })),
+      name: Type.Optional(Type.String({ description: "Filename or path for the agent .md file (alias for path)" })),
       content: Type.String({ description: "The agent .md content to validate and write" }),
     }),
     execute: async (_toolCallId, params, _signal, _onUpdate, _ctx) => {
+      // Accept 'name' as an alias for 'path' (model sometimes uses 'name').
+      // If the value has no directory component and no extension, treat it as
+      // a bare agent name and expand to the staging path.
+      let rawPath = (params as any).path || (params as any).name || "";
+      if (rawPath && !rawPath.includes("/") && !rawPath.includes("\\")) {
+        // Bare name like "dtc-requirements" → staging agents path
+        const stem = rawPath.endsWith(".md") ? rawPath : `${rawPath}.md`;
+        rawPath = `.pi/flows/.staging/agents/${stem}`;
+      }
+      (params as any).path = rawPath;
+      log(`[agent_write] rawPath resolved: ${rawPath} (from path=${(params as any).path} name=${(params as any).name})`);
       // Run validation first (with dynamically discovered tools)
       const dynamicTools = new Set(pi.getAllTools().map(t => t.name));
       const validation = validateAgentContent(params.content, dynamicTools);

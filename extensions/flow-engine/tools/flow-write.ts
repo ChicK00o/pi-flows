@@ -25,12 +25,23 @@ export function registerFlowWriteTool(
   pi.registerTool({
     name: "flow_write",
     description:
-      "Validate and write a flow YAML file. Validates internally first. If validation passes, writes the file to the specified path. Returns errors if invalid.",
+      "Validate and write a flow YAML file. Use the 'path' parameter for the full file path (e.g. '.pi/flows/.staging/flows/my-flow.yaml') or 'name' for a bare flow name (e.g. 'my-flow'). Validates content first; if valid, writes the file.",
     parameters: Type.Object({
-      path: Type.String({ description: "Absolute or relative path to write the flow .yaml file" }),
+      path: Type.Optional(Type.String({ description: "Absolute or relative path to write the flow .yaml file" })),
+      name: Type.Optional(Type.String({ description: "Filename or path for the flow .yaml file (alias for path)" })),
       content: Type.String({ description: "The flow YAML content to validate and write" }),
     }),
     execute: async (_toolCallId, params, _signal, _onUpdate, _ctx) => {
+      // Accept 'name' as an alias for 'path' (model sometimes uses 'name').
+      // If the value has no directory component, treat it as a bare flow name
+      // and expand to the staging path.
+      let rawPath = (params as any).path || (params as any).name || "";
+      if (rawPath && !rawPath.includes("/") && !rawPath.includes("\\")) {
+        const stem = rawPath.endsWith(".yaml") || rawPath.endsWith(".yml") ? rawPath : `${rawPath}.yaml`;
+        rawPath = `.pi/flows/.staging/flows/${stem}`;
+      }
+      (params as any).path = rawPath;
+      log(`[flow_write] rawPath resolved: ${rawPath} (from path=${(params as any).path} name=${(params as any).name})`);
       // Run validation first
       const validation = validateFlowContent(params.content, getDiscoveredAgents);
 
