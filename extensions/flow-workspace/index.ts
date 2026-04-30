@@ -383,6 +383,7 @@ async function handleEditFlow(
 
     const spawnCtx = getSpawnContext(pi);
     log(`[workspace] spawnCtx tools: ${spawnCtx.tools.map((t: any) => t.name).join(', ')}`);
+    log(`[workspace] spawnCtx extraAgentExtensions count: ${spawnCtx.extraAgentExtensions.length}, names: ${spawnCtx.extraAgentExtensions.map((f: any) => f.name || f.toString().slice(0, 60)).join(' | ')}`);
     const result = await spawnAgent({
       agent: architectConfig,
       task: currentTask,
