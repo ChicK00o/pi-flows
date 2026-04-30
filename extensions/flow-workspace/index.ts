@@ -20,6 +20,7 @@ import {
 import { existsSync, readFileSync, copyFileSync, mkdirSync } from "node:fs";
 import { createStagingDir, wipeStagingDir, promoteStagingToFinal, STAGING_AGENTS, STAGING_FLOWS } from "./staging.js";
 import { join } from "node:path";
+import { resolveProjectRoot } from "../project-root.js";
 import { getModelRole } from "../role-manager.js";
 import { emitPromptAndAwait } from "../flow-engine/flow-prompt.js";
 import { parseFlowYamlString } from "../flow-engine/flow-parser-yaml.js";
@@ -987,7 +988,7 @@ async function handleNewFlow(
 // ---- Extension activation -------------------------------------------------
 
 export function activate(pi: ExtensionAPI) {
-  const projectRoot = process.cwd();
+  const projectRoot = resolveProjectRoot();
 
   // No lastCtx — all interactions go through events.
 

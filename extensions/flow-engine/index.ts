@@ -9,6 +9,7 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import type { AgentConfig, FlowConfig, FlowResult } from "./types.js";
 import { discoverAll, resolvePackageRoot } from "./discovery.js";
+import { resolveProjectRoot } from "../project-root.js";
 import { getModelRole, isAutonomousMode, setAutonomousMode } from "../role-manager.js";
 import { registerSubagentTool } from "./tool.js";
 import { registerAskUserTool } from "./tools/ask-user.js";
@@ -111,7 +112,7 @@ function checkGate(flowName: string): string | null {
 
 export function activate(pi: ExtensionAPI) {
   const pkgRoot = resolvePackageRoot(import.meta.url);
-  const projectRoot = process.cwd();
+  const projectRoot = resolveProjectRoot();
   packageRoot = pkgRoot;
 
   // Initial discovery
