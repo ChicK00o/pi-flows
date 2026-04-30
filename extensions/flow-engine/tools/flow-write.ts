@@ -22,6 +22,7 @@ export function registerFlowWriteTool(
   getDiscoveredAgents: () => Map<string, AgentConfig>,
   projectRoot?: string,
 ): void {
+  log(`[flow_write] registerFlowWriteTool called, projectRoot=${projectRoot}`);
   pi.registerTool({
     name: "flow_write",
     description:
@@ -32,6 +33,7 @@ export function registerFlowWriteTool(
       content: Type.String({ description: "The flow YAML content to validate and write" }),
     }),
     execute: async (_toolCallId, params, _signal, _onUpdate, _ctx) => {
+      log(`[flow_write] EXECUTE CALLED raw params=${JSON.stringify(params)}`);
       // Accept 'name' as an alias for 'path' (model sometimes uses 'name').
       // If the value has no directory component, treat it as a bare flow name
       // and expand to the staging path.

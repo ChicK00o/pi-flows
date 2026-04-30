@@ -749,9 +749,11 @@ async function handleNewFlow(
         : undefined,
       signal: architectAbort.signal,
       onToolCall: (toolName, input) => {
+        log(`[architect] TOOL CALL: ${toolName} input=${JSON.stringify(input).slice(0, 200)}`);
         pi.events.emit("flow:architect-tool-call", { toolName, input });
       },
       onToolResult: (toolName, output, isError) => {
+        log(`[architect] TOOL RESULT: ${toolName} isError=${isError} output=${JSON.stringify(output).slice(0, 200)}`);
         pi.events.emit("flow:architect-tool-result", { toolName, output, isError });
       },
       onAssistantText: (text) => {

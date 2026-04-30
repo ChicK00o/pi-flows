@@ -16,6 +16,7 @@ const LOG = join(homedir(), ".pi", "pi-flows-debug.log");
 function log(msg: string) { try { appendFileSync(LOG, `${new Date().toISOString()} ${msg}\n`); } catch {} }
 
 export function registerAgentWriteTool(pi: ExtensionAPI, projectRoot?: string): void {
+  log(`[agent_write] registerAgentWriteTool called, projectRoot=${projectRoot}`);
   pi.registerTool({
     name: "agent_write",
     description:
@@ -26,6 +27,7 @@ export function registerAgentWriteTool(pi: ExtensionAPI, projectRoot?: string): 
       content: Type.String({ description: "The agent .md content to validate and write" }),
     }),
     execute: async (_toolCallId, params, _signal, _onUpdate, _ctx) => {
+      log(`[agent_write] EXECUTE CALLED raw params=${JSON.stringify(params)}`);
       // Accept 'name' as an alias for 'path' (model sometimes uses 'name').
       // If the value has no directory component and no extension, treat it as
       // a bare agent name and expand to the staging path.
