@@ -9,9 +9,9 @@ import { Type } from "@sinclair/typebox";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { validateAgentContent } from "./agent-validate.js";
 import { writeFileSync, mkdirSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 
-export function registerAgentWriteTool(pi: ExtensionAPI): void {
+export function registerAgentWriteTool(pi: ExtensionAPI, projectRoot?: string): void {
   pi.registerTool({
     name: "agent_write",
     description:
@@ -42,9 +42,11 @@ export function registerAgentWriteTool(pi: ExtensionAPI): void {
       }
 
       // Ensure directory exists and write the file
+      // Resolve relative paths against projectRoot to avoid resolving against pi's process cwd
+      const absPath = projectRoot ? resolve(projectRoot, params.path) : params.path;
       try {
-        mkdirSync(dirname(params.path), { recursive: true });
-        writeFileSync(params.path, params.content, "utf-8");
+        mkdirSync(dirname(absPath), { recursive: true });
+        writeFileSync(absPath, params.content, "utf-8");
       } catch (err) {
         return {
           content: [
@@ -52,7 +54,7 @@ export function registerAgentWriteTool(pi: ExtensionAPI): void {
               type: "text" as const,
               text: JSON.stringify({
                 written: false,
-                path: params.path,
+                path: absPath,
                 error: err instanceof Error ? err.message : String(err),
               }, null, 2),
             },
@@ -70,7 +72,7 @@ export function registerAgentWriteTool(pi: ExtensionAPI): void {
             type: "text" as const,
             text: JSON.stringify({
               written: true,
-              path: params.path,
+              path: absPath,
               diagnostics: validation.diagnostics,
             }, null, 2),
           },

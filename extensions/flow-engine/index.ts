@@ -351,8 +351,8 @@ export function activate(pi: ExtensionAPI) {
     },
   };
   registerAgentCatalogTool(subagentOnlyPi as any, () => agents, projectRoot, pkgRoot, () => extraAgentsDirs);
-  registerAgentWriteTool(subagentOnlyPi as any);
-  registerFlowWriteTool(subagentOnlyPi as any, () => agents);
+  registerAgentWriteTool(subagentOnlyPi as any, projectRoot);
+  registerFlowWriteTool(subagentOnlyPi as any, () => agents, projectRoot);
 
   // ── Register flow commands ──
 

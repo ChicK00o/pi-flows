@@ -11,11 +11,12 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import type { AgentConfig } from "../types.js";
 import { validateFlowContent } from "./flow-validate.js";
 import { writeFileSync, mkdirSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 
 export function registerFlowWriteTool(
   pi: ExtensionAPI,
   getDiscoveredAgents: () => Map<string, AgentConfig>,
+  projectRoot?: string,
 ): void {
   pi.registerTool({
     name: "flow_write",
@@ -46,9 +47,11 @@ export function registerFlowWriteTool(
       }
 
       // Ensure directory exists and write the file
+      // Resolve relative paths against projectRoot to avoid resolving against pi's process cwd
+      const absPath = projectRoot ? resolve(projectRoot, params.path) : params.path;
       try {
-        mkdirSync(dirname(params.path), { recursive: true });
-        writeFileSync(params.path, params.content, "utf-8");
+        mkdirSync(dirname(absPath), { recursive: true });
+        writeFileSync(absPath, params.content, "utf-8");
       } catch (err) {
         return {
           content: [
@@ -56,7 +59,7 @@ export function registerFlowWriteTool(
               type: "text" as const,
               text: JSON.stringify({
                 written: false,
-                path: params.path,
+                path: absPath,
                 error: err instanceof Error ? err.message : String(err),
               }, null, 2),
             },
@@ -74,7 +77,7 @@ export function registerFlowWriteTool(
             type: "text" as const,
             text: JSON.stringify({
               written: true,
-              path: params.path,
+              path: absPath,
               diagnostics: validation.diagnostics,
             }, null, 2),
           },
