@@ -338,17 +338,27 @@ export function activate(pi: ExtensionAPI) {
   const seenToolNames = new Set<string>();
 
   // Capture full ToolDefinition objects (with .execute()) for subagent sessions.
-  // These tools are NOT registered on the main session — they are only available
-  // to subagents (e.g., flow-architect) via extraCustomTools.
+  // Also register on the main session (name-only stub) so the pi-anthropic-messages
+  // adapter's getReverseMap() sees them in pi.getAllTools() and can correctly
+  // translate mcp__pi__agent_write → agent_write on inbound responses.
   const subagentOnlyPi = {
     ...pi,
     registerTool: (tool: any) => {
       if (!seenToolNames.has(tool.name)) {
         seenToolNames.add(tool.name);
         registeredExtensionTools.push(tool);
+        // Register a name-only stub on the main session so the adapter's reverse
+        // map includes this tool name. The stub execute is never called from the
+        // main session — subagents get the real execute via extraCustomTools.
+        try {
+          pi.registerTool({
+            ...tool,
+            execute: async () => ({ content: [{ type: "text" as const, text: "[subagent-only tool]" }], details: {} }),
+          });
+        } catch {
+          // If main session doesn't support registerTool (e.g. already started), ignore.
+        }
       }
-      // Intentionally NOT calling pi.registerTool() — these tools should not
-      // appear in the main session's system prompt or be callable by the main LLM.
     },
   };
   registerAgentCatalogTool(subagentOnlyPi as any, () => agents, projectRoot, pkgRoot, () => extraAgentsDirs);
