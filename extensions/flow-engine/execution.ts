@@ -343,7 +343,10 @@ export async function spawnAgent(options: SpawnOptions): Promise<AgentResult> {
     const { session: sess } = await createAgentSession({
       model,
       thinkingLevel: thinking as any,
-      tools: builtinToolNames,
+      // tools allowlist: builtin names + custom tool names so getAllTools()
+      // includes them (the adapter builds its reverse map from getAllTools()).
+      // customTools provides the actual ToolDefinition objects with execute().
+      tools: [...builtinToolNames, ...customTools.map((t: any) => t.name)],
       customTools: customTools,
       resourceLoader,
       sessionManager: SessionManager.inMemory(),
