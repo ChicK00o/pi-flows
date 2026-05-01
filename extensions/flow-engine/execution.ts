@@ -20,6 +20,9 @@ import { parseResult } from "./result-parser.js";
 import type { GuardOptions } from "./guard.js";
 import { createGuardExtension } from "./guard.js";
 import { prefixToolName } from "./tool-prefix.js";
+import { appendFileSync } from "fs";
+const LOG_FILE = process.env.HOME + "/.pi/pi-flows-debug.log";
+const log = (msg: string) => appendFileSync(LOG_FILE, new Date().toISOString() + " " + msg + "\n");
 
 export { prefixToolName } from "./tool-prefix.js";
 
@@ -289,6 +292,7 @@ export async function spawnAgent(options: SpawnOptions): Promise<AgentResult> {
     ...agentCustomTools,
     ...extraPrefixed.filter((t: any) => !customToolNames.has(t.name)),
   ];
+  log(`[execution] agent=${agent.name} builtinToolNames=${builtinToolNames.join(',')} extraCustomTools count=${(options.extraCustomTools ?? []).length} names=${(options.extraCustomTools ?? []).map((t:any)=>t.name).join(',')} customTools count=${customTools.length} names=${customTools.map((t:any)=>t.name).join(',')} toolPrefix=${toolPrefix}`);
 
   // Build guard options
   const guardOptions: GuardOptions = {
