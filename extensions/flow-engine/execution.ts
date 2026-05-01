@@ -254,15 +254,11 @@ export async function spawnAgent(options: SpawnOptions): Promise<AgentResult> {
     ?? (options.modelRegistry as any)?.authStorage
     ?? undefined;
 
-  // Detect Anthropic-messages protocol: any provider using anthropic-messages
-  // needs non-core tools registered with mcp__flows__ prefix so Anthropic's
-  // endpoint accepts them. This covers direct OAuth, API key, AND proxy
-  // providers (e.g., 9Router) that forward to Anthropic. The mcp__ prefix
-  // is harmless for all anthropic-messages endpoints.
-  let toolPrefix = "";
-  if (model.api === "anthropic-messages") {
-    toolPrefix = "mcp__flows__";
-  }
+  // No tool prefix needed — the pi-anthropic-messages adapter handles
+  // outbound renaming (finish → mcp__pi__finish) and inbound translation
+  // automatically for all registered tools. Adding our own mcp__flows__
+  // prefix breaks the adapter's reverse map lookup.
+  const toolPrefix = "";
 
   // Resolve tools from agent frontmatter:
   // - Built-in tools (read, bash, grep, find, etc.) are passed as name strings
@@ -270,28 +266,14 @@ export async function spawnAgent(options: SpawnOptions): Promise<AgentResult> {
   // - Custom extension tools (agent_write, flow_write, agent_catalog) are passed
   //   as ToolDefinition objects via `customTools`
   const builtinToolNames = agent.tools.filter(t => TOOL_FACTORIES[t]);
-  // Keep ToolDefinition objects for non-builtin custom tools declared in agent frontmatter
-  // (rare — usually custom tools come via extraCustomTools, but support both)
-  const agentCustomTools = agent.tools
-    .filter(t => !TOOL_FACTORIES[t])
-    .map(t => {
-      // Look up in extraCustomTools by name
-      const found = (options.extraCustomTools ?? []).find((c: any) => c.name === t);
-      return found ?? null;
-    })
-    .filter(Boolean);
 
-  // Prefix customTools (extension tools like agent_write, flow_write, etc.)
-  const extraPrefixed = (options.extraCustomTools ?? []).map((t: any) => {
-    const prefixed = prefixToolName(t.name, toolPrefix);
-    return prefixed !== t.name ? { ...t, name: prefixed } : t;
+  // Apply prefix to all extra custom tools (agent_write, flow_write, agent_catalog).
+  // When toolPrefix is set (anthropic-messages path), only the prefixed names are
+  // sent — never both. Sending duplicates confuses the model.
+  const customTools = (options.extraCustomTools ?? []).map((t: any) => {
+    const prefixedName = prefixToolName(t.name, toolPrefix);
+    return prefixedName !== t.name ? { ...t, name: prefixedName } : t;
   });
-  // Merge: agent-declared custom tools + all extraCustomTools (deduped by name)
-  const customToolNames = new Set(agentCustomTools.map((t: any) => t.name));
-  const customTools = [
-    ...agentCustomTools,
-    ...extraPrefixed.filter((t: any) => !customToolNames.has(t.name)),
-  ];
   log(`[execution] agent=${agent.name} builtinToolNames=${builtinToolNames.join(',')} extraCustomTools count=${(options.extraCustomTools ?? []).length} names=${(options.extraCustomTools ?? []).map((t:any)=>t.name).join(',')} customTools count=${customTools.length} names=${customTools.map((t:any)=>t.name).join(',')} toolPrefix=${toolPrefix}`);
 
   // Build guard options
