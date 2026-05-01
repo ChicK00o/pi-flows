@@ -29,25 +29,18 @@
 import type { ExtensionFactory } from "@mariozechner/pi-coding-agent";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { appendFileSync } from "node:fs";
-
-const LOG = join(homedir(), ".pi", "pi-flows-debug.log");
-function log(msg: string) { try { appendFileSync(LOG, `${new Date().toISOString()} ${msg}\n`); } catch {} }
 
 // Known install paths for pi-anthropic-messages, in priority order.
-// The package may be installed as a git package under ~/.pi/agent/git/
-// or as an npm package. We try each location and use the first that resolves.
 const CANDIDATE_PATHS = [
   join(homedir(), ".pi", "agent", "git", "github.com", "BlackBeltTechnology", "pi-anthropic-messages", "extensions", "index.ts"),
   join(homedir(), ".pi", "agent", "git", "github.com", "BlackBeltTechnology", "pi-anthropic-messages", "extensions", "index.js"),
 ];
 
 export const anthropicMessagesAgentFactory: ExtensionFactory = async (pi) => {
-  // First try the package name (works when installed as npm dep or via node_modules alias)
+  // First try the package name (works when installed as npm dep or alias)
   try {
     const mod = await import("@pi/anthropic-messages");
     if (typeof mod.default === "function") {
-      log("[adapter] loaded @pi/anthropic-messages via package name");
       await mod.default(pi);
       return;
     }
@@ -60,7 +53,6 @@ export const anthropicMessagesAgentFactory: ExtensionFactory = async (pi) => {
     try {
       const mod = await import(candidate);
       if (typeof mod.default === "function") {
-        log(`[adapter] loaded pi-anthropic-messages from ${candidate}`);
         await mod.default(pi);
         return;
       }
@@ -68,6 +60,4 @@ export const anthropicMessagesAgentFactory: ExtensionFactory = async (pi) => {
       // Try next candidate
     }
   }
-
-  log("[adapter] WARNING: pi-anthropic-messages not found — subagent runs without anthropic-messages transform");
 };

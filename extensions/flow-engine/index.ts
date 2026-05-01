@@ -338,26 +338,21 @@ export function activate(pi: ExtensionAPI) {
   const seenToolNames = new Set<string>();
 
   // Capture full ToolDefinition objects (with .execute()) for subagent sessions.
-  // Also register on the main session (name-only stub) so the pi-anthropic-messages
-  // adapter's getReverseMap() sees them in pi.getAllTools() and can correctly
-  // translate mcp__pi__agent_write → agent_write on inbound responses.
+  // Also register stubs on the main session so the pi-anthropic-messages adapter's
+  // getAllTools() includes these names and can build correct inbound reverse maps.
   const subagentOnlyPi = {
     ...pi,
     registerTool: (tool: any) => {
       if (!seenToolNames.has(tool.name)) {
         seenToolNames.add(tool.name);
         registeredExtensionTools.push(tool);
-        // Register a name-only stub on the main session so the adapter's reverse
-        // map includes this tool name. The stub execute is never called from the
-        // main session — subagents get the real execute via extraCustomTools.
+        // Stub on main session for adapter reverse map — execute is never called here.
         try {
           pi.registerTool({
             ...tool,
-            execute: async () => ({ content: [{ type: "text" as const, text: "[subagent-only tool]" }], details: {} }),
+            execute: async () => ({ content: [{ type: "text" as const, text: "[subagent-only]" }], details: {} }),
           });
-        } catch {
-          // If main session doesn't support registerTool (e.g. already started), ignore.
-        }
+        } catch { /* ignore if main session already started */ }
       }
     },
   };

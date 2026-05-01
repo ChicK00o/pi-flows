@@ -20,9 +20,6 @@ import { parseResult } from "./result-parser.js";
 import type { GuardOptions } from "./guard.js";
 import { createGuardExtension } from "./guard.js";
 import { prefixToolName } from "./tool-prefix.js";
-import { appendFileSync } from "fs";
-const LOG_FILE = process.env.HOME + "/.pi/pi-flows-debug.log";
-const log = (msg: string) => appendFileSync(LOG_FILE, new Date().toISOString() + " " + msg + "\n");
 
 export { prefixToolName } from "./tool-prefix.js";
 
@@ -256,25 +253,15 @@ export async function spawnAgent(options: SpawnOptions): Promise<AgentResult> {
 
   // No tool prefix needed — the pi-anthropic-messages adapter handles
   // outbound renaming (finish → mcp__pi__finish) and inbound translation
-  // automatically for all registered tools. Adding our own mcp__flows__
-  // prefix breaks the adapter's reverse map lookup.
+  // automatically for all registered tools.
   const toolPrefix = "";
 
-  // Resolve tools from agent frontmatter:
-  // - Built-in tools (read, bash, grep, find, etc.) are passed as name strings
-  //   via the `tools` parameter (CreateAgentSessionOptions.tools: string[])
-  // - Custom extension tools (agent_write, flow_write, agent_catalog) are passed
-  //   as ToolDefinition objects via `customTools`
+  // Built-in tools passed as name strings; custom tools as ToolDefinition objects.
   const builtinToolNames = agent.tools.filter(t => TOOL_FACTORIES[t]);
-
-  // Apply prefix to all extra custom tools (agent_write, flow_write, agent_catalog).
-  // When toolPrefix is set (anthropic-messages path), only the prefixed names are
-  // sent — never both. Sending duplicates confuses the model.
   const customTools = (options.extraCustomTools ?? []).map((t: any) => {
     const prefixedName = prefixToolName(t.name, toolPrefix);
     return prefixedName !== t.name ? { ...t, name: prefixedName } : t;
   });
-  log(`[execution] agent=${agent.name} builtinToolNames=${builtinToolNames.join(',')} extraCustomTools count=${(options.extraCustomTools ?? []).length} names=${(options.extraCustomTools ?? []).map((t:any)=>t.name).join(',')} customTools count=${customTools.length} names=${customTools.map((t:any)=>t.name).join(',')} toolPrefix=${toolPrefix}`);
 
   // Build guard options
   const guardOptions: GuardOptions = {
@@ -343,9 +330,9 @@ export async function spawnAgent(options: SpawnOptions): Promise<AgentResult> {
     const { session: sess } = await createAgentSession({
       model,
       thinkingLevel: thinking as any,
-      // tools allowlist: builtin names + custom tool names so getAllTools()
-      // includes them (the adapter builds its reverse map from getAllTools()).
-      // customTools provides the actual ToolDefinition objects with execute().
+      // Include custom tool names in the allowlist so getAllTools() returns them.
+      // The adapter builds its reverse map from getAllTools() to translate
+      // mcp__pi__agent_write → agent_write on inbound responses.
       tools: [...builtinToolNames, ...customTools.map((t: any) => t.name)],
       customTools: customTools,
       resourceLoader,
@@ -549,12 +536,11 @@ export async function spawnAgent(options: SpawnOptions): Promise<AgentResult> {
     };
   }
 
-  // If finish was never called as a real tool (e.g. max_tokens truncation mid-call),
-  // try to recover finish params from text-embedded <tool_call> JSON blocks.
-  // The model sometimes outputs: <tool_call> {"name":"mcp__flows__finish","arguments":{...}} </tool_call>
+  // If finish was never called as a real tool (e.g. max_tokens truncation),
+  // try to recover finishParams from text-embedded <tool_call> JSON blocks.
   if (!finishParams) {
     const toolCallMatch = lastAssistantText.match(
-      /<tool_call>\s*(\{[\s\S]*?\})\s*<\/tool_call>/
+      /<tool_call>\s*({[\s\S]*?})\s*<\/tool_call>/
     );
     if (toolCallMatch) {
       try {

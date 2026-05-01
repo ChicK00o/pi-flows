@@ -17,14 +17,10 @@ import {
   getLatestCompactionEntry,
   type SessionEntry,
 } from "@mariozechner/pi-coding-agent";
-import { existsSync, readFileSync, copyFileSync, mkdirSync, appendFileSync } from "node:fs";
+import { existsSync, readFileSync, copyFileSync, mkdirSync } from "node:fs";
 import { createStagingDir, wipeStagingDir, promoteStagingToFinal, STAGING_AGENTS, STAGING_FLOWS } from "./staging.js";
 import { join } from "node:path";
-import { homedir } from "node:os";
 import { resolveProjectRoot } from "../project-root.js";
-
-const LOG = join(homedir(), ".pi", "pi-flows-debug.log");
-function log(msg: string) { try { appendFileSync(LOG, `${new Date().toISOString()} ${msg}\n`); } catch {} }
 import { getModelRole } from "../role-manager.js";
 import { emitPromptAndAwait } from "../flow-engine/flow-prompt.js";
 import { parseFlowYamlString } from "../flow-engine/flow-parser-yaml.js";
@@ -382,8 +378,6 @@ async function handleEditFlow(
     });
 
     const spawnCtx = getSpawnContext(pi);
-    log(`[workspace] spawnCtx tools: ${spawnCtx.tools.map((t: any) => t.name).join(', ')}`);
-    log(`[workspace] spawnCtx extraAgentExtensions count: ${spawnCtx.extraAgentExtensions.length}, names: ${spawnCtx.extraAgentExtensions.map((f: any) => f.name || f.toString().slice(0, 60)).join(' | ')}`);
     const result = await spawnAgent({
       agent: architectConfig,
       task: currentTask,
@@ -439,17 +433,14 @@ async function handleEditFlow(
       }
     }
 
-    // Fallback: recover flowPath and createdFiles from finishParams.files when
-    // flow_write never fired as a real tool call (max_tokens truncation).
+    // Fallback: recover from finishParams.files when flow_write never fired as a real tool call
     if (!flowPath && result.finishParams?.files) {
       for (const f of result.finishParams.files) {
         const p: string = f.path ?? "";
         if (!p) continue;
         allCreatedFiles.add(p);
         createdFiles.push(p);
-        if (!flowPath && (p.endsWith(".yaml") || p.endsWith(".yml"))) {
-          flowPath = p;
-        }
+        if (!flowPath && (p.endsWith(".yaml") || p.endsWith(".yml"))) flowPath = p;
       }
     }
 
@@ -749,11 +740,9 @@ async function handleNewFlow(
         : undefined,
       signal: architectAbort.signal,
       onToolCall: (toolName, input) => {
-        log(`[architect] TOOL CALL: ${toolName} input=${JSON.stringify(input).slice(0, 200)}`);
         pi.events.emit("flow:architect-tool-call", { toolName, input });
       },
       onToolResult: (toolName, output, isError) => {
-        log(`[architect] TOOL RESULT: ${toolName} isError=${isError} output=${JSON.stringify(output).slice(0, 200)}`);
         pi.events.emit("flow:architect-tool-result", { toolName, output, isError });
       },
       onAssistantText: (text) => {
@@ -777,8 +766,6 @@ async function handleNewFlow(
     // Extract flow path and created files from tool calls
     flowPath = "";
     createdFiles.length = 0;
-    log(`[workspace] result.toolCalls: ${result.toolCalls.map((tc: any) => tc.toolName).join(', ')}`);
-    log(`[workspace] result.finishParams: ${JSON.stringify(result.finishParams ?? null)}`);
 
     for (const tc of result.toolCalls) {
       const baseName = tc.toolName.replace(/^mcp__[^_]+__/, "");
@@ -792,18 +779,14 @@ async function handleNewFlow(
       }
     }
 
-    // Fallback: if flow_write never fired as a real tool call (e.g. finish was text-embedded
-    // after max_tokens truncation), recover flowPath and createdFiles from finishParams.files.
-    // The architect lists every file it wrote in its finish call.
+    // Fallback: recover from finishParams.files when flow_write never fired as a real tool call
     if (!flowPath && result.finishParams?.files) {
       for (const f of result.finishParams.files) {
         const p: string = f.path ?? "";
         if (!p) continue;
         allCreatedFiles.add(p);
         createdFiles.push(p);
-        if (!flowPath && (p.endsWith(".yaml") || p.endsWith(".yml"))) {
-          flowPath = p;
-        }
+        if (!flowPath && (p.endsWith(".yaml") || p.endsWith(".yml"))) flowPath = p;
       }
     }
 
@@ -911,10 +894,7 @@ async function handleNewFlow(
 
     if (nameResult.answer) {
       safeName = slugify(nameResult.answer);
-      log(`[workspace] saving flow: projectRoot=${projectRoot} safeName=${safeName} stagingFlowPath=${flowPath}`);
-      log(`[workspace] allCreatedFiles: ${[...allCreatedFiles].join(', ')}`);
       const finalFlowPath = promoteStagingToFinal(projectRoot, safeName);
-      log(`[workspace] promoteStagingToFinal returned: ${finalFlowPath}`);
       flowPath = finalFlowPath || flowPath;
 
       // Re-discover so the saved flow registers as a command immediately
